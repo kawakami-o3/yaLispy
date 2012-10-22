@@ -2,37 +2,24 @@
 
 require 'readline'
 
-class Env
+class Env < Hash
   def initialize parms=[], args=[], outer=nil
-    @dict = {}
     parms.zip(args).each do |k,v|
-      @dict[k] = v
+      self[k] = v
     end
     @outer = outer
   end
 
-  attr_reader :outer,:dict
+  attr_reader :outer
 
   def find var
-    return @dict.has_key?(var) ? self : @outer.find(var)
-  end
-
-  def merge var
-    @dict.merge!(var)
-  end
-
-  def [](key)
-    @dict[key]
-  end
-
-  def []=(key,val)
-    @dict[key] = val
+    return has_key?(var) ? self : @outer.find(var)
   end
 end
 
 def add_globals env
   Math.methods.each do |i| 
-    env.merge({i.to_s=>Math.method(i)})
+    env.update({i.to_s=>Math.method(i)})
   end
   [{"+"=>lambda {|x,y| x + y}} ,
     {"-"=>lambda {|x,y| x - y}} ,
@@ -57,7 +44,7 @@ def add_globals env
     {"null?"=>lambda {|x| x == []}} ,
     {"symbol?"=>lambda {|x| x.class == String}}
   ].each do |h|
-    env.merge(h)
+    env.update(h)
   end
   return env
 end
@@ -66,7 +53,7 @@ Global_env = add_globals(Env.new())
 
 def eval x , env=Global_env
   if x.class == String
-    return env.find(x)[x] # x の env を特定して、引っこ抜いている
+    return env.find(x)[x]
   elsif x.class != Array
     return x
   elsif x[0] == "quote"
@@ -142,21 +129,11 @@ def atom token
       return String(token)
     end
   end
-=begin
-  if token =~ /^[0-9]+$/
-    token.to_i
-  elsif token =~ /^[0-9][0-9.]+$/
-    token.to_f
-  else
-    token
-  end
-=end
 end
 
 def to_string exp
   exp.class == Array ? "(#{exp.map{|i| to_string(i)}.join(" ")})" : exp.to_s
 end
-
 
 def repl prompt="#{__FILE__}> "
   while buf = Readline.readline(prompt, true)
@@ -169,5 +146,4 @@ end
 if $0 == __FILE__
   repl()
 end
-
 
