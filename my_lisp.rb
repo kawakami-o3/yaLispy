@@ -17,28 +17,24 @@ class Env < Hash
   end
 end
 
+def infix label, sym=nil
+  sym = :"#{label}" if sym == nil
+  {label => lambda {|x,y| x.method(sym).call(y) }}
+end
+
 def add_globals env
   Math.methods.each do |i| 
     env.update({i.to_s=>Math.method(i)})
   end
-  [{"+"=>lambda {|x,y| x + y}} ,
-    {"-"=>lambda {|x,y| x - y}} ,
-    {"*"=>lambda {|x,y| x * y}} ,
-    {"/"=>lambda {|x,y| x / y}} ,
-    {"not"=>lambda {|x| not x}} ,
-    {">"=>lambda {|x,y| x > y}} ,
-    {"<"=>lambda {|x,y| x < y}} ,
-    {"<"=>lambda {|x,y| x < y}} ,
-    {">="=>lambda {|x,y| x >= y}} ,
-    {"<="=>lambda {|x,y| x <= y}} ,
-    {"="=>lambda {|x,y| x == y}} ,
-    {"equal?"=>lambda {|x,y| x == y}} ,
+  [infix("+") , infix("-") , infix("*") , infix("/") ,
+    infix(">") , infix("<") , infix(">=") , infix("<=") ,
+    infix("=", :==) , {"not"=>lambda {|x| not x}} ,
+    infix("append", :+), infix("equal?", :==) ,
     {"eq?"=>lambda {|x,y| x.__id__ == y.__id__}} ,
     {"length"=>lambda {|x| x.length}} ,
     {"cons"=>lambda {|x,y| [x] + y}} ,
     {"car"=>lambda {|x| x[0]}} ,
     {"cdr"=>lambda {|x| x[1..-1]}} ,
-    {"append"=>lambda {|x,y| x + y}} ,
     {"list"=>lambda {|*x| x}} ,
     {"list?"=>lambda {|x| x.class == Array}} ,
     {"null?"=>lambda {|x| x == []}} ,
@@ -50,6 +46,8 @@ def add_globals env
 end
 
 Global_env = add_globals(Env.new())
+
+# --------------------------------------------------------------
 
 def eval x , env=Global_env
   if x.class == String
@@ -89,6 +87,7 @@ def eval x , env=Global_env
   end
 end
 
+# --------------------------------------------------------------
 
 def read_from tokens
   raise SyntaxError.new("unexpected EOF while reading") if tokens.length == 0
