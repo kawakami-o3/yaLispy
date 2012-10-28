@@ -2,4 +2,4 @@
 lisp
 *.hi
 *.o
-Haskell/*
+*.swp
