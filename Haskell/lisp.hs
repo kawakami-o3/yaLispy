@@ -1,7 +1,11 @@
-module Main(to_string, main) where
+--module Main(to_string, main, read_from, atom) where
+module Main(..) where
 import System.IO (hFlush, stdout)
+import Control.Exception
+import Prelude hiding (catch)
 
 data Expr = LispyInt Integer |
+            LispyFloat Double |
             LispySymbol String |
             LispyList [Expr]
 
@@ -14,12 +18,22 @@ instance Show Expr where
 eval :: [Expr] -> Expr
 eval = undefined
 
+atom :: String -> Expr
+atom = undefined
+
 read_from :: [String] -> [Expr]
-read_from = undefined
+read_from [] = []
+read_from (")":xs) = error "unexpected )"
+read_from ("(":xs) = (atom (head xs) : (read_from (tail (tail xs)))
 
 tokenize :: String -> [String]
-tokenize = undefined
-
+tokenize [] = []
+tokenize s = words $ addSpace s
+  where
+    addSpace [] = []
+    addSpace (x:xs) = if x == '(' || x == ')'
+                         then ' ':x:' ':(addSpace xs)
+                         else x:(addSpace xs)
 
 parse :: String -> [Expr]
 parse = read_from . tokenize
@@ -39,6 +53,7 @@ runTest = do
   putStrLn $ show (LispyInt 1)
   putStrLn $ show (LispySymbol "hello")
   putStrLn $ show (LispyList [LispyInt 1, LispySymbol "a"])
+  putStrLn $ show $ tokenize "(hoge 1 (add 1 2))"
 
 
 --main = repl
