@@ -3,3 +3,4 @@ lisp
 *.hi
 *.o
 *.swp
+tmp
