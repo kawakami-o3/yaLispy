@@ -49,7 +49,7 @@ Global_env = add_globals(Env.new())
 
 # --------------------------------------------------------------
 
-def eval x , env=Global_env
+def eval_sexp x , env=Global_env
   if x.class == String
     return env.find(x)[x]
   elsif x.class != Array
@@ -61,27 +61,27 @@ def eval x , env=Global_env
     test = x[1]
     conseq = x[2]
     alt = x[3]
-    return eval(eval(test, env) ? conseq : alt, env)
+    return eval_sexp(eval_sexp(test, env) ? conseq : alt, env)
   elsif x[0] == "set!"
     var = x[1]
     exp = x[2]
-    env.find(var)[var] = eval(exp,env)
+    env.find(var)[var] = eval_sexp(exp,env)
   elsif x[0] == "define"
     var = x[1]
     exp = x[2]
-    env[var] = eval(exp,env)
+    env[var] = eval_sexp(exp,env)
   elsif x[0] == "lambda"
     vars = x[1]
     exp = x[2]
-    return lambda {|*args| eval(exp, Env.new(vars, args, env))}
+    return lambda {|*args| eval_sexp(exp, Env.new(vars, args, env))}
   elsif x[0] == "begin"
     ret = nil
-    x[1..-1].each do |exp|
-      ret = eval(exp, env)
+    x[1..-1].each do |e|
+      ret = eval_sexp(e, env)
     end
     return ret
   else
-    exps = x.map{|i| eval(i,env)}
+    exps = x.map{|i| eval_sexp(i,env)}
     prc = exps.shift
     return prc.call(*exps)
   end
@@ -131,12 +131,43 @@ def atom token
 end
 
 def to_string exp
-  exp.class == Array ? "(#{exp.map{|i| to_string(i)}.join(" ")})" : exp.to_s
+	if exp.class == Array
+	 	"(#{exp.map{|i| to_string(i)}.join(" ")})"
+	else
+		exp.to_s
+	end
+end
+
+
+def diff_bracket buf
+	buf.count("(") - buf.count(")")
+end
+
+def read_sentence prompt
+	buf = Readline.readline(prompt, true)
+	if buf == nil || buf.length == 0
+		return buf
+	else
+		while diff_bracket(buf) > 0
+			buf += Readline.readline("", true)
+		end
+
+		if diff_bracket(buf) == 0
+			return buf
+		else # "(" < ")"
+			puts "invalid"
+			return ""
+		end
+	end
 end
 
 def repl prompt="#{__FILE__}> "
-  while buf = Readline.readline(prompt, true)
-    val = eval(parse(buf))
+  #while buf = Readline.readline(prompt, true)
+  while buf = read_sentence(prompt)
+		if buf == ""
+			next
+		end
+    val = eval_sexp(parse(buf))
     puts "-> #{to_string(val)}" unless val == nil
   end
 end
