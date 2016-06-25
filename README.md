@@ -1,4 +1,4 @@
-MyLisp
+yaLispy
 ======
 
 [Peter Norvig の lispy](http://www.aoky.net/articles/peter_norvig/lispy.htm)
