@@ -26,26 +26,26 @@
 
 (defun create_global_environment ()
   (let ((env (make-instance 'environment)))
-    ;(put env '+ (lambda (x) (+ (car x) (car (cdr x)))))
     (put env '+ (lambda (x y) (+ x y)))
     env))
 
 (defun eval_sexp (x env)
   (if (typep x 'symbol)
-    (return-from eval_sexp '(env (find_sexp x (dictionary (find_env env x))))))
+    (return-from eval_sexp (list env (find_sexp x (dictionary (find_env env x))))))
   (if (not (consp x))
-    (return-from eval_sexp '(env x)))
+    (return-from eval_sexp (list env x)))
   (case (car x)
-    ("quote" "quote")
-    ("if" "quote")
-    ("set!" "quote")
-    ("define" "quote")
-    ("lambda" "quote")
-    ("begin" "quote")
-    (otherwise (let ((exps (mapcar (lambda (y) (eval_sexp y env)) x)))
-                (if (string= (car (cdr exps)) "lambda")
-                 '(nil env)
-                 (apply (car exps) (cdr exps)))))))
+    ('quote (list env (cadr x)))
+    ('if "quote")
+    ('set! "quote")
+    ('define "quote")
+    ('lambda "quote")
+    ('begin "quote")
+    (otherwise (let ((exps (mapcar (lambda (y) (cadr (eval_sexp y env))) x)))
+                 (list env (apply (car exps) (cdr exps)))))))
+;                (if (string= (car exps) "lambda")
+;                 '(nil env)
+;                 (apply (car exps) (cdr exps)))))))
 
 #|
 (defun add_space (str)
@@ -106,7 +106,7 @@
     (loop
       (format t "MyLisp> ")
       (setf s (read-line))
-      (format t "-> ~a~%" (eval_sexp (parse s) env)))))
+      (format t "-> ~a~%" (cadr (eval_sexp (parse s) env))))))
 
 (repl)
 
