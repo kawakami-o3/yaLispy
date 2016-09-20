@@ -27,6 +27,7 @@
 (defun create_global_environment ()
   (let ((env (make-instance 'environment)))
     (put env '+ (lambda (x y) (+ x y)))
+    (put env '= (lambda (x y) (= x y)))
     env))
 
 (defun eval_sexp (x env)
@@ -36,7 +37,9 @@
     (return-from eval_sexp (list env x)))
   (case (car x)
     ('quote (list env (cadr x)))
-    ('if "quote")
+    ('if (if (cadr (eval_sexp (cadr x) env))
+           (eval_sexp (caddr x) env)
+           (eval_sexp (cadddr x) env)))
     ('set! "quote")
     ('define "quote")
     ('lambda "quote")
