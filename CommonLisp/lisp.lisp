@@ -4,8 +4,8 @@
   ((outer :accessor outer :initform '() :initarg :env)
    (dictionary :accessor dictionary :initform '() :initarg :dictionary)))
 
-(defmethod put ((env environment) (name symbol) (fun function))
-  (let ()
+(defmethod put ((env environment) (name symbol) fun)
+  (progn
     (setf (dictionary env) (cons (list name fun) (dictionary env)))
     env
     ))
@@ -35,17 +35,20 @@
     (return-from eval_sexp (list env (find_sexp x (dictionary (find_env env x))))))
   (if (not (consp x))
     (return-from eval_sexp (list env x)))
-  (case (car x)
-    ('quote (list env (cadr x)))
-    ('if (if (cadr (eval_sexp (cadr x) env))
-           (eval_sexp (caddr x) env)
-           (eval_sexp (cadddr x) env)))
-    ('set! "quote")
-    ('define "quote")
-    ('lambda "quote")
-    ('begin "quote")
-    (otherwise (let ((exps (mapcar (lambda (y) (cadr (eval_sexp y env))) x)))
-                 (list env (apply (car exps) (cdr exps)))))))
+  (let ((fn (car x)) (arg (cdr x)))
+    (case (car x)
+      ('quote (list env (cadr x)))
+      ('if (if (cadr (eval_sexp (cadr x) env))
+             (eval_sexp (caddr x) env)
+             (eval_sexp (cadddr x) env)))
+      ('set! (let ((k (car arg)) (v (cadr (eval_sexp (cadr arg) env))))
+               (list (put env k v) v)))
+      ('define "quote")
+      ('lambda "quote")
+      ('begin "quote")
+      (otherwise (let ((exps (mapcar (lambda (y) (cadr (eval_sexp y env))) x)))
+                   ;(format t "~a~%" exps)
+                   (list env (apply (car exps) (cdr exps))))))))
 ;                (if (string= (car exps) "lambda")
 ;                 '(nil env)
 ;                 (apply (car exps) (cdr exps)))))))
@@ -69,7 +72,7 @@
       (let ((i 0) (len (length str)) (tmp "") (result '()))
         (loop for x in (concatenate 'list str)
               if (char= x #\Space) do
-              (if (< 0 (length tmp))
+              (if (< 1 (length tmp))
                 (progn
                   (setq result (cons tmp result))
                   (setq tmp "")))
@@ -98,7 +101,7 @@
       (if (string= ")" token)
         (error "SyntaxError: unexpected )")
         token)))) ; TODO parse token
-|#
+;|#
 
 (defun parse (str)
   ;(read_from (tokenize str)))
@@ -111,5 +114,19 @@
       (setf s (read-line))
       (format t "-> ~a~%" (cadr (eval_sexp (parse s) env))))))
 
-(repl)
+;(repl)
+
+(defun do_test (commands)
+  (let ((env (create_global_environment)))
+    (loop for x in commands
+          do
+          (format t "> ~a~%" x)
+          (format t "==> ~a~%" (cadr (eval_sexp (parse x) env))))))
+
+(do_test
+  (list
+    "(+ 1 2)"
+    "(set! a 2)"
+    "(+ a 100)"
+    ))
 
