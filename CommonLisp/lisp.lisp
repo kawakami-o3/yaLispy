@@ -4,17 +4,23 @@
   ((outer :accessor outer :initform '() :initarg :env)
    (dictionary :accessor dictionary :initform '() :initarg :dictionary)))
 
-(defmethod put ((env environment) (name symbol) fun)
+(defmethod define ((env environment) (name symbol) fun)
   (progn
     (setf (dictionary env) (cons (list name fun) (dictionary env)))
     env
     ))
 
-(defmethod find_env ((env environment) (name symbol))
-  (let ((fun (find_sexp name (dictionary env))))
-    (if fun
-      env
-      (find_env (outer env) name))))
+(defmethod update ((env environment) (name symbol) fun)
+  (let ((e (find_env env name)))
+    (if e (define e namei fun) (define env name fun))))
+
+(defmethod find_env (env (name symbol))
+  (if env
+    (let ((fun (find_sexp name (dictionary env))))
+      (if fun
+        env
+        (find_env (outer env) name)))
+    nil))
 
 (defun find_sexp (name lst)
   (if (= 0 (length lst))
@@ -26,8 +32,8 @@
 
 (defun create_global_environment ()
   (let ((env (make-instance 'environment)))
-    (put env '+ (lambda (x y) (+ x y)))
-    (put env '= (lambda (x y) (= x y)))
+    (define env '+ (lambda (x y) (+ x y)))
+    (define env '= (lambda (x y) (= x y)))
     env))
 
 (defun eval_sexp (x env)
@@ -42,12 +48,12 @@
              (eval_sexp (caddr x) env)
              (eval_sexp (cadddr x) env)))
       ('set! (let ((k (car arg)) (v (cadr (eval_sexp (cadr arg) env))))
-               (list (put env k v) v)))
-      ('define "quote")
+               (list (update env k v) v)))
+      ('define (let ((k (car arg)) (v (cadr (eval_sexp (cadr arg) env))))
+               (list (define env k v) v)))
       ('lambda "quote")
       ('begin "quote")
       (otherwise (let ((exps (mapcar (lambda (y) (cadr (eval_sexp y env))) x)))
-                   ;(format t "~a~%" exps)
                    (list env (apply (car exps) (cdr exps))))))))
 ;                (if (string= (car exps) "lambda")
 ;                 '(nil env)
@@ -128,5 +134,7 @@
     "(+ 1 2)"
     "(set! a 2)"
     "(+ a 100)"
+    "(define b 200)"
+    "(+ a b)"
     ))
 
