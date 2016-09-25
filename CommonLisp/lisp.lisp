@@ -30,6 +30,13 @@
         (car (cdr pair))
         (find_sexp name (cdr lst))))))
 
+
+(defun create_environment (out_env vars args)
+  (let ((env (make-instance 'environment)))
+    (loop for k in vars for v in args do (define env k v))
+    (setf (outer env) out_env)
+    env))
+
 (defun create_global_environment ()
   (let ((env (make-instance 'environment)))
     (define env '+ (lambda (x y) (+ x y)))
@@ -51,15 +58,15 @@
                (list (update env k v) v)))
       ('define (let ((k (car arg)) (v (cadr (eval_sexp (cadr arg) env))))
                (list (define env k v) v)))
-      ('lambda "quote")
-      ('begin "quote")
+      ('lambda (list env x))
       (otherwise (let ((exps (mapcar (lambda (y) (cadr (eval_sexp y env))) x)))
-                   (list env (apply (car exps) (cdr exps))))))))
-;                (if (string= (car exps) "lambda")
-;                 '(nil env)
-;                 (apply (car exps) (cdr exps)))))))
+                   ;(format t "eval_sexp.1> ~a~%" exps)
+                   (if (equal 'function (type-of (car exps)))
+                     (list env (apply (car exps) (cdr exps)))
+                     (let ((vars (cadar exps)) (body (caddar exps)) (args (cdr exps)))
+                         (eval_sexp body (create_environment env vars args)))))))))
 
-#|
+
 (defun add_space (str)
   (setq str (concatenate 'list str))
   (if (= 0 (length str))
@@ -76,14 +83,13 @@
     '()
     (let ((str (format nil "~a " arg)))
       (let ((i 0) (len (length str)) (tmp "") (result '()))
-        (loop for x in (concatenate 'list str)
-              if (char= x #\Space) do
-              (if (< 1 (length tmp))
-                (progn
-                  (setq result (cons tmp result))
-                  (setq tmp "")))
-              else do
-              (setq tmp (format nil "~a~a" tmp x)))
+        (loop for x in (concatenate 'list str) do
+              (if (char= x #\Space)
+                (if (< 0 (length tmp))
+                  (progn
+                    (setq result (cons tmp result))
+                    (setq tmp "")))
+                (setq tmp (format nil "~a~a" tmp x))))
         (reverse result)))))
 
 (defun tokenize (str)
@@ -95,6 +101,10 @@
         (setf (cdr lst) (cdr lst_new))
         x))
 
+(defun parse_atom (s)
+  (let ((v (parse-integer s :junk-allowed t)))
+    (if v v (intern (string-upcase s)))))
+
 (defun read_from (tokens)
   (if (= 0 (length tokens))
     (error "SyntaxError: unexpected EOF while reading"))
@@ -103,15 +113,18 @@
       (let ((ret '()))
         (loop while (string/= ")" (car tokens)) do
               (setq ret (cons (read_from tokens) ret)))
+        (shift tokens)
         (reverse ret))
       (if (string= ")" token)
         (error "SyntaxError: unexpected )")
-        token)))) ; TODO parse token
-;|#
+        (parse_atom token)))))
+
+
 
 (defun parse (str)
-  ;(read_from (tokenize str)))
-  (read-from-string str))
+  (format t ">> ~a~%" (tokenize str))
+  (read_from (tokenize str)))
+  ;(read-from-string str)) ;!!!
 
 (defun repl ()
   (let ((env (create_global_environment)))
@@ -122,12 +135,16 @@
 
 ;(repl)
 
+
 (defun do_test (commands)
   (let ((env (create_global_environment)))
     (loop for x in commands
           do
           (format t "> ~a~%" x)
-          (format t "==> ~a~%" (cadr (eval_sexp (parse x) env))))))
+;          (format t "parse> ~a~%" (parse x))
+          (format t "==> ~a~%" (cadr (eval_sexp (parse x) env)))
+          )))
+;|#
 
 (do_test
   (list
@@ -136,5 +153,7 @@
     "(+ a 100)"
     "(define b 200)"
     "(+ a b)"
+    "(define c (lambda (x) (+ x 1)))"
+    "(c 1000)"
     ))
 
