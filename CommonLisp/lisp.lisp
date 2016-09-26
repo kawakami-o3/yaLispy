@@ -39,6 +39,7 @@
 
 (defun create_global_environment ()
   (let ((env (make-instance 'environment)))
+    (define env 'append (lambda (x y) (reverse (cons y (reverse x)))))
     (define env '+ (lambda (x y) (+ x y)))
     (define env '= (lambda (x y) (= x y)))
     env))
@@ -148,12 +149,13 @@
 
 (do_test
   (list
-    "(+ 1 2)"
-    "(set! a 2)"
-    "(+ a 100)"
-    "(define b 200)"
-    "(+ a b)"
-    "(define c (lambda (x) (+ x 1)))"
-    "(c 1000)"
+    "(append (quote (1 2 3)) (quote 1))"
+;   "(+ 1 2)"
+;   "(set! a 2)"
+;   "(+ a 100)"
+;   "(define b 200)"
+;   "(+ a b)"
+;   "(define c (lambda (x) (+ x 1)))"
+;   "(c 1000)"
     ))
 
