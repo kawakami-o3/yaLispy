@@ -39,9 +39,31 @@
 
 (defun create_global_environment ()
   (let ((env (make-instance 'environment)))
-    (define env 'append (lambda (x y) (reverse (cons y (reverse x)))))
-    (define env '+ (lambda (x y) (+ x y)))
-    (define env '= (lambda (x y) (= x y)))
+    (define env 'append (lambda (args) (apply #'append args)))
+    (define env 'car (lambda (args) (apply #'car args)))
+    (define env 'cdr (lambda (args) (apply #'cdr args)))
+    (define env 'cons (lambda (args) (apply #'cons args)))
+    (define env 'length (lambda (args) (apply #'length args)))
+
+    (define env 'list? (lambda (args) (string= "CONS" (type-of (car args)))))
+    (define env 'symbol? (lambda (args) (string= "SYMBOL" (type-of (car args)))))
+    (define env 'nil? (lambda (args) (string= "NULL" (type-of (car args)))))
+    (define env 'not (lambda (args) (apply #'not args)))
+
+    (define env '+ (lambda (args) (apply #'+ args)))
+    (define env '- (lambda (args) (apply #'- args)))
+    (define env '* (lambda (args) (apply #'* args)))
+    (define env '/ (lambda (args) (apply #'/ args)))
+
+    (define env '> (lambda (args) (apply #'> args)))
+    (define env '< (lambda (args) (apply #'< args)))
+    (define env '>= (lambda (args) (apply #'>= args)))
+    (define env '<= (lambda (args) (apply #'<= args)))
+    (define env '= (lambda (args) (apply #'= args)))
+
+    (define env 't t)
+    (define env 'f nil)
+    (define env 'nil nil)
     env))
 
 (defun eval_sexp (x env)
@@ -61,9 +83,8 @@
                (list (define env k v) v)))
       ('lambda (list env x))
       (otherwise (let ((exps (mapcar (lambda (y) (cadr (eval_sexp y env))) x)))
-                   ;(format t "eval_sexp.1> ~a~%" exps)
                    (if (equal 'function (type-of (car exps)))
-                     (list env (apply (car exps) (cdr exps)))
+                     (list env (funcall (car exps) (cdr exps)))
                      (let ((vars (cadar exps)) (body (caddar exps)) (args (cdr exps)))
                          (eval_sexp body (create_environment env vars args)))))))))
 
@@ -120,12 +141,9 @@
         (error "SyntaxError: unexpected )")
         (parse_atom token)))))
 
-
-
 (defun parse (str)
-  (format t ">> ~a~%" (tokenize str))
   (read_from (tokenize str)))
-  ;(read-from-string str)) ;!!!
+  ;(read-from-string str))
 
 (defun repl ()
   (let ((env (create_global_environment)))
@@ -134,9 +152,9 @@
       (setf s (read-line))
       (format t "-> ~a~%" (cadr (eval_sexp (parse s) env))))))
 
-;(repl)
+(repl)
 
-
+#|
 (defun do_test (commands)
   (let ((env (create_global_environment)))
     (loop for x in commands
@@ -145,17 +163,24 @@
 ;          (format t "parse> ~a~%" (parse x))
           (format t "==> ~a~%" (cadr (eval_sexp (parse x) env)))
           )))
-;|#
-
 (do_test
   (list
     "(append (quote (1 2 3)) (quote 1))"
-;   "(+ 1 2)"
-;   "(set! a 2)"
-;   "(+ a 100)"
-;   "(define b 200)"
-;   "(+ a b)"
-;   "(define c (lambda (x) (+ x 1)))"
-;   "(c 1000)"
+    "(append (quote (1 2 3)) (quote (1)) (quote (30)))"
+    "(car (quote (1 2 3)))"
+    "(+ 1 2)"
+    "(set! a 2)"
+    "(+ a 100)"
+    "(define b 200)"
+    "(+ a b)"
+    "(define c (lambda (x) (+ x 1)))"
+    "(c 1000)"
+    "(list? (quote (1 2 3)))"
+    "(symbol? (quote a))"
+    "(symbol? (quote 1))"
+    "(nil? (quote 1))"
+    "(nil? (quote nil))"
     ))
+;|#
+
 
