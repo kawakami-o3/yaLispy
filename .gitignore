@@ -4,3 +4,6 @@ lisp
 *.o
 *.swp
 tmp
+
+Go/Go
+
