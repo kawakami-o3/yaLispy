@@ -1,15 +1,23 @@
-$(function () {
-  var logger = $("#log");
+window.onload = function() {
+  function toArray(obj) {
+    var ret = [];
+    for (var i in obj) {
+      ret.push(obj[i]);
+    }
+    return ret;
+  }
+  const logger = document.getElementById("log");
 
-  var createEnv = function(parms, args, outer) {
-    parms = parms || [];
+  var createEnv = function(params, args, outer) {
+    params = params || [];
     args = args || [];
     outer = outer || null;
 
     var ret = {};
-    _.zip(parms,args).map(function(i) {
-      ret[i[0]] = i[1];
-    });
+    for (var i in params) {
+      ret[params[i]] = args[i];
+    }
+
     ret["outer"] = outer;
     ret.find = function(varname) {
       return ret[varname] ? ret : outer.find(varname);
@@ -36,8 +44,8 @@ $(function () {
         'length': function(i) {return i.length},
         'cons': function(i,j) {return [i].concat(j)},
         'car': function(i) {return i[0]},
-        'cdr': function(i) {return _.rest(i)},
-        'list': function() {return _.toArray(arguments)},
+        'cdr': function(i) {return i.slice(1)},
+        'list': function() {return toArray(arguments)},
         'null?': function() {return x === []},
         'symbol?': function() {return typeof x === 'string'},
       };
@@ -56,13 +64,13 @@ $(function () {
     })(createEnv());
 
     return function(x, env) {
-      if (_.isUndefined(env)) {
+      if (env == null) {
         env = Global_env;
       }
 
       if (typeof x === 'string') {
         return env.find(x)[x];
-      } else if (!_.isArray(x)) {
+      } else if (!Array.isArray(x)) {
         return x;
       } else if (x[0] === 'quote') {
         return x[1];
@@ -82,7 +90,9 @@ $(function () {
       } else if (x[0] === 'lambda') {
         var varname = x[1];
         var exp = x[2];
-        return function() {return eval(exp,createEnv(varname, _.toArray(arguments), env));};
+        return function() {
+          return eval(exp,createEnv(varname, toArray(arguments), env));
+        };
       } else if (x[0] === 'begin') {
         var ret;
         for (var i=0 ; i<x.length ; i++) {
@@ -131,30 +141,37 @@ $(function () {
   }
 
   var atom = function(token) {
-    return _.isFinite(Number(token)) ? Number(token) : token;
+    return isFinite(Number(token)) ? Number(token) : token;
   }
 
   var to_string = function(exp) {
-    return _.isArray(exp) ? '('+ exp.map(function(i){return to_string(i)}).join(' ') +')' : (""+exp);
+    return Array.isArray(exp) ? '('+ exp.map(function(i){return to_string(i)}).join(' ') +')' : (""+exp);
   };
 
-  $("#code").keydown(function(e) {
-    if (e.keyCode == 13) {
-      var input = $("#code").val();
+  var append = function(elm, str) {
+    const pTag = document.createElement('p');
+    const text = document.createTextNode(str);
+    pTag.appendChild(text)
+    elm.insertBefore(pTag, elm.children[0]);
+  };
 
-      logger.prepend("INPUT> " + input + "<br/>");
+  const code = document.getElementById("code");
+  code.addEventListener("keydown", function(e) {
+    if (e.keyCode == 13) {
+      var input = code.value;
+
+      append(logger, "INPUT> " + input);
       if (input !== "") {
         try {
           var val = eval(parse(input));
-          logger.prepend("-> " + to_string(val) + "<br/>");
+          append(logger, "-> " + to_string(val));
         } catch (e) {
-          logger.prepend(e.name + ': ' + e.message);
+          append(logger, e.name + ': ' + e.message);
         }
       }
-      $("#code").attr("value","");
+      code.setAttribute("value","");
     }
     return true;
   });
-
-});
+};
 
